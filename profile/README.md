@@ -101,7 +101,7 @@ an 11-D parameter space, with a **GP surrogate** for sensitivity analysis. On th
 Go2 (Gazebo Fortress → hardware) it reaches up to **90.0% success rate** and a **−38.7%**
 average path length with negligible sim-to-real degradation.
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](https://github.com/talos-robotics-ai/Go2_navigation/blob/main/documentation/_3a__PathPlanning_MPC.pdf)
+<!-- [![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](https://github.com/talos-robotics-ai/Go2_navigation/blob/main/documentation/_3a__PathPlanning_MPC.pdf) -->
 [![Code](https://img.shields.io/badge/Code-Go2__navigation-1f6feb?logo=github)](https://github.com/talos-robotics-ai/Go2_navigation)
 
 ---
