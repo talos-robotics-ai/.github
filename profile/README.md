@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros" />
   <img src="https://img.shields.io/badge/Sim-Isaac_Sim_5.1-76B900?logo=nvidia" />
   <img src="https://img.shields.io/badge/Sim-Gazebo_Fortress-orange" />
-  <img src="https://img.shields.io/badge/Robots-Unitree_Go2_&_G1-yellow" />
+  <img src="https://img.shields.io/badge/Sim-MuJoCo-FF6F00" />
   <img src="https://img.shields.io/badge/VLA-Qwen3--VL_+_Flow_DiT-8A2BE2" />
   <img src="https://img.shields.io/badge/Based_in-Milan,_Italy-1f6feb" />
 </p>
