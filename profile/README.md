@@ -12,7 +12,8 @@
   <img src="https://img.shields.io/badge/Sim-Isaac_Sim_5.1-76B900?logo=nvidia" />
   <img src="https://img.shields.io/badge/Sim-Gazebo_Fortress-orange" />
   <img src="https://img.shields.io/badge/Sim-MuJoCo-FF6F00" />
-  <img src="https://img.shields.io/badge/GPI" />
+  <img src="https://img.shields.io/badge/Intelligence-GPI-8A2BE2" />
+  <img src="https://img.shields.io/badge/Robots-Unitree_Go2_&_G1-yellow" />
   <img src="https://img.shields.io/badge/Based_in-Milan,_Italy-1f6feb" />
 </p>
 
@@ -34,6 +35,35 @@ with our implemented dashboard, the customer is capable of:
 - General Physical intelligence for enabling a robot agnostic platform.
 
 ---
+
+## 🧠 General Physical Intelligence (GPI)
+
+We propose a **family of foundational models for General Physical Intelligence (GPI)**.
+Our goal is to combine **edge multi-modal systems** with **interaction-driven World
+Models** to train **Reinforcement Learning** policies for **zero-shot adaptation** in
+**non-stationary embodied environments** and **out-of-distribution physical tasks**.
+Rather than relying on a static pre-trained solution, we introduce a **continual learning
+framework**, supporting **long-horizon planning** and **edge industrial autonomous
+robotics**.
+
+```mermaid
+flowchart LR
+    OBS["Edge multi-modal sensing<br/>cameras · LiDAR · proprioception"] --> WM
+    GOAL["Task / language goal"] --> WM
+    subgraph GPI["GPI foundational models"]
+        WM["Interaction-driven<br/>World Model"] --> RL["RL policy<br/>(long-horizon planning)"]
+    end
+    RL --> ACT["Whole-body actions → Unitree G1 / Go2"]
+    ACT -.interaction & fleet data.-> CL["Continual learning"]
+    CL -.zero-shot / OOD adaptation.-> GPI
+```
+
+- **Edge multi-modal sensing** — fuse vision, depth/LiDAR, and proprioception under on-robot compute constraints.
+- **Interaction-driven World Models** — learn environment dynamics from interaction to predict and plan.
+- **RL policies** — trained against the World Model for zero-shot adaptation to OOD physical tasks.
+- **Continual learning** — non-stationary, deployment-time adaptation instead of a frozen pre-trained model.
+- **Long-horizon planning** — for edge industrial autonomous robotics.
+
 <!--
 
 ## ⚙️ Core technology
@@ -54,8 +84,8 @@ fleet data.
 
 `ROS 2 Humble` · `NVIDIA Isaac Sim` · `Isaac Lab` · `Gazebo Fortress` · `Mujoco` ·
 `CasADi` / `IPOPT` · `Bayesian Optimization (TPE + GP)` · `Reinforcement Learning` ·
-`Qwen3-VL` · `Flow-matching Diffusion Transformer` · `Docker` · `WebSockets` ·
-`Unitree Go2 & G1`
+`World Models` · `Continual Learning` · `Edge Multi-modal Inference` ·
+`General Physical Intelligence (GPI)` · `Docker` · `WebSockets` · `Unitree Go2 & G1`
 
 ---
 
