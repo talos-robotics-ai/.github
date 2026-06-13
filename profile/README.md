@@ -112,7 +112,7 @@ average path length with negligible sim-to-real degradation.
 |---|---|
 | **Gabriel Voss** | CEO — Computer Engineering, PoliMi |
 | **Lorenzo Ortolani** | CTO — Automation & Control Engineering (MSc), PoliMi |
-| **Gabriele Beltrami** | HOE - Automation & Control Engineering (MSc), PoliMi |
+| **Gabriele Beltrami** | HOE — Automation & Control Engineering (MSc), PoliMi |
 | **Raul Rizzon** | CSO — Business & Entrepreneurship (MSc), UCSC |
 
 **Manipulation:** Giacomo Galbiati · Massimiliano Menzolini · Filippo Rossetti
