@@ -91,7 +91,7 @@ fleet data.
 
 ## 📄 Papers
 
-**[Bayesian Optimization for Learning Nonlinear MPC in Autonomous Agent Navigation](https://github.com/talos-robotics-ai/Go2_navigation/blob/main/documentation/conference_101719.pdf)**
+**[Bayesian Optimization for Learning Nonlinear MPC in Autonomous Agent Navigation](https://arxiv.org/abs/2606.14763)**
 <br/>Lorenzo Ortolani, Gabriel Voss, Gabriele Beltrami, Francesco Dorati, Tommaso Felice Banfi — *Talos Robotics AI*
 
 A map-free navigation stack pairing rolling-horizon **A\*** on a LiDAR **Gaussian occupancy
