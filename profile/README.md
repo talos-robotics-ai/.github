@@ -1,4 +1,4 @@
-<h1 align="center">⁕ Talos Robotics AI</h1>
+<h1 align="center">Talos Robotics AI</h1>
 
 <p align="center"><b>Making humanoids work in the real world for specific tasks applications.</b></p>
 
