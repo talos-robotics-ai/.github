@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physical AI Skill Stack</title>
+<style>
+  :root {
+    --bg: #ffffff; --text: #1f1f1e; --muted: #5f5e5a; --border: #e3e1da;
+    --code-bg: #f5f4ef; --accent: #2f6fdb; --axis: #b9b6ab; --th-bg: #f7f6f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1c1b; --text: #ecebe6; --muted: #a8a69e; --border: #3a3936;
+      --code-bg: #2a2a28; --accent: #6b9cf0; --axis: #6f6d66; --th-bg: #252523;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1b; --text: #ecebe6; --muted: #a8a69e; --border: #3a3936;
+    --code-bg: #2a2a28; --accent: #6b9cf0; --axis: #6f6d66; --th-bg: #252523;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  }
+  .layout { display: flex; max-width: 1180px; margin: 0 auto; gap: 40px; padding: 40px 16px 80px; }
+  nav.toc { position: sticky; top: 24px; align-self: flex-start; width: 240px; flex: none; font-size: 14px; }
+  nav.toc a { display: block; color: var(--muted); text-decoration: none; padding: 3px 0; }
+  nav.toc a.sub { padding-left: 14px; font-size: 13px; }
+  nav.toc a:hover { color: var(--accent); }
+  main { flex: 1; min-width: 0; max-width: 760px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 6px; }
+  h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 32px 0 8px; }
+  .byline { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  code { font: 13.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  .table-wrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--th-bg); font-weight: 600; }
+  figure { margin: 20px 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--muted); font-size: 13px; text-align: center; margin-top: 6px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .tasks { list-style: none; padding-left: 4px; }
+  .tasks li::before { content: "☐  "; color: var(--muted); }
+  svg .ink { fill: var(--text); }
+  svg .quiet { fill: var(--muted); }
+  svg .box { fill: none; stroke: var(--axis); stroke-width: 1.25; }
+  svg .box-accent { fill: var(--accent); fill-opacity: .12; stroke: var(--accent); stroke-width: 2; }
+  svg .wire { fill: none; stroke: var(--axis); stroke-width: 1.25; }
+  svg .head { fill: var(--axis); }
+  @media (max-width: 900px) { nav.toc { display: none; } .layout { padding-top: 24px; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <a href="#overview">Overview</a>
+  <a href="#part1">Part 1 — 3D reconstruction</a>
+  <a class="sub" href="#tools">Tools</a>
+  <a class="sub" href="#a">A. Capture</a>
+  <a class="sub" href="#b">B. Reconstruct</a>
+  <a class="sub" href="#c">C. Split into objects</a>
+  <a class="sub" href="#d">D. Physics copies</a>
+  <a class="sub" href="#e">E. Assemble the simulation</a>
+  <a class="sub" href="#checklist">Validation checklist</a>
+  <a class="sub" href="#limits">Limits</a>
+  <a href="#part2">Part 2 — Steerable skills</a>
+  <a href="#part3">Part 3 — Skill factory</a>
+  <a href="#part4">Part 4 — Runtime</a>
+  <a href="#risks">Main risks</a>
+  <a href="#mvp">Suggested MVP order</a>
+</nav>
+<main>
+<h1>Physical AI Skill Stack: Real-to-Sim Reconstruction &amp; Steerable Skills</h1>
+<div class="byline">As of 2026-11-18</div>
+
+<h2 id="overview">Overview</h2>
+<p>The stack generalizes through composition, not model size: an agent combines small, steerable skills, and new skills are trained in a digital twin built from RGB images, with no teleoperation.</p>
+<ul>
+  <li><strong>Agent (orchestrator):</strong> plans, calls skills as typed tools, checks results, replans.</li>
+  <li><strong>World state:</strong> frozen, off-the-shelf perception models build a scene graph. Nothing here is trained.</li>
+  <li><strong>Skill library:</strong> small policies (10–300M parameters) running on the robot's onboard computer, each steered by object-centric inputs.</li>
+  <li><strong>Safety and low-level control:</strong> force limits, impedance control, inverse kinematics.</li>
+  <li><strong>Skill factory (offline):</strong> RGB scan → digital twin → automatic data generation → small policy → evaluation → deploy.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 760 392" role="img" aria-label="Small skills, steered by one agent, generalize together" font-size="13" font-family="-apple-system, BlinkMacSystemFont, Inter, Helvetica, Arial, sans-serif">
+  <defs><marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="head"/></marker></defs>
+  <text x="24" y="34" font-size="15" font-weight="600" class="ink">Small skills, steered by one agent, generalize together</text>
+  <g class="wire">
+    <path d="M124 176V128" marker-end="url(#arch-arrow)"/>
+    <path d="M364 128V176" marker-start="url(#arch-arrow)" marker-end="url(#arch-arrow)"/>
+    <path d="M364 264V312" marker-end="url(#arch-arrow)"/>
+    <path d="M472 92H636V176" marker-end="url(#arch-arrow)"/>
+    <path d="M536 220H472" marker-end="url(#arch-arrow)"/>
+  </g>
+  <text x="132" y="156" font-size="11.5" class="quiet">scene graph</text>
+  <text x="372" y="156" font-size="11.5" class="quiet">calls, status</text>
+  <text x="372" y="292" font-size="11.5" class="quiet">actions</text>
+  <text x="554" y="84" text-anchor="middle" font-size="11.5" class="quiet">no skill fits / failures</text>
+  <text x="504" y="212" text-anchor="middle" font-size="11.5" class="quiet">deploy</text>
+
+  <rect x="24" y="56" width="448" height="72" rx="8" class="box"/>
+  <text x="40" y="80" font-weight="600" class="ink">Agent / orchestrator</text>
+  <text x="40" y="96" font-size="11.5" class="ink">Plans, calls skills as typed tools, checks results, replans</text>
+  <text x="40" y="112" font-size="11.5" class="quiet">LLM/VLM · about 1 Hz · cloud or larger onboard computer</text>
+
+  <rect x="24" y="176" width="200" height="88" rx="8" class="box"/>
+  <text x="40" y="200" font-weight="600" class="ink">World state</text>
+  <text x="40" y="216" font-size="11.5" class="ink">Frozen perception models</text>
+  <text x="40" y="232" font-size="11.5" class="ink">Scene graph: objects, poses</text>
+  <text x="40" y="248" font-size="11.5" class="quiet">Nothing trained</text>
+
+  <rect x="256" y="176" width="216" height="88" rx="8" class="box-accent"/>
+  <text x="272" y="200" font-weight="600" class="ink">Skill library</text>
+  <text x="272" y="216" font-size="11.5" class="ink">Small policies, 10–300M params</text>
+  <text x="272" y="232" font-size="11.5" class="ink">Steered by geometric inputs</text>
+  <text x="272" y="248" font-size="11.5" class="quiet">10–50 Hz on the robot's Jetson</text>
+
+  <rect x="256" y="312" width="216" height="56" rx="8" class="box"/>
+  <text x="272" y="336" font-weight="600" class="ink">Safety + control</text>
+  <text x="272" y="352" font-size="11.5" class="quiet">Force limits, impedance, IK</text>
+
+  <rect x="536" y="176" width="200" height="120" rx="8" class="box"/>
+  <text x="552" y="200" font-weight="600" class="ink">Skill factory (offline)</text>
+  <text x="552" y="216" font-size="11.5" class="ink">1. RGB scan → digital twin</text>
+  <text x="552" y="232" font-size="11.5" class="ink">2. Demos or RL in sim</text>
+  <text x="552" y="248" font-size="11.5" class="ink">3. Distill small policy</text>
+  <text x="552" y="264" font-size="11.5" class="ink">4. Gate in sim, then real</text>
+  <text x="552" y="280" font-size="11.5" class="quiet">No teleoperation</text>
+</svg>
+<figcaption>Stack architecture · 4 runtime layers + offline skill factory</figcaption>
+</figure>
+<p>The agent reads the scene graph and steers skills; when no skill fits, the factory trains a new one in simulation and deploys it to the library.</p>
+<p>Part 1 is the step-by-step procedure for building the digital twin. Parts 2–4 cover how skills are steered, how new skills are produced, and how the agent runs them.</p>
+
+<h2 id="part1">Part 1 — 3D reconstruction and digital twin pipeline</h2>
+<p>One RGB video of the workcell becomes a simulation-ready twin in 19 steps. Each object gets two registered copies: Gaussians for what the camera sees, and meshes for physics.</p>
+
+<h3 id="tools">Tools</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Stage</th><th>Recommended tools</th></tr></thead>
+<tbody>
+<tr><td>Camera poses</td><td>COLMAP or GLOMAP; nerfstudio <code>ns-process-data</code> wraps them</td></tr>
+<tr><td>Gaussian splatting</td><td>gsplat, nerfstudio <code>splatfacto</code></td></tr>
+<tr><td>Segmentation</td><td>SAM 2, Grounded-SAM (text prompts); Gaussian Grouping or SAGA for 3D lifting</td></tr>
+<tr><td>Meshing</td><td>2DGS, SuGaR, Open3D TSDF fusion, or photogrammetry (COLMAP MVS)</td></tr>
+<tr><td>Asset cleanup</td><td>Blender 4.x, scripted with <code>bpy</code> and run headless</td></tr>
+<tr><td>Collision shapes</td><td>CoACD (or V-HACD)</td></tr>
+<tr><td>Physics</td><td>MuJoCo (CPU, debugging), Newton with the MuJoCo-Warp solver (GPU, scale); Isaac Lab or ManiSkill3 as alternatives</td></tr>
+<tr><td>Robot models</td><td>Manufacturer URDF or MuJoCo Menagerie MJCF</td></tr>
+<tr><td>Calibration</td><td>OpenCV (<code>calibrateCamera</code>, <code>calibrateHandEye</code>), ChArUco or AprilTag boards</td></tr>
+</tbody></table></div>
+<p>Hardware: one GPU with 16–24 GB of memory is enough for scenes of a single workcell.</p>
+
+<h3 id="a">A. Capture</h3>
+<ol>
+<li><strong>Prepare the scene.</strong>
+  <ul>
+  <li>Put the robot in its home pose and leave it in the scene.</li>
+  <li>Place a ChArUco or AprilTag board flat on the table, at a known position relative to the robot base.</li>
+  <li>Avoid moving people, screens and strong reflections.</li>
+  </ul></li>
+<li><strong>Record the scene video.</strong>
+  <ul>
+  <li>Lock exposure, white balance and focus on the phone or camera.</li>
+  <li>Orbit slowly at 2–3 heights, 1–2 minutes total, with large overlap between frames.</li>
+  <li>Also record from the positions where the robot's real cameras are mounted. Renders are most accurate near captured views.</li>
+  </ul></li>
+<li><strong>Record each movable object on its own.</strong> Scan it all around, then flip it and scan the underside. The scene scan never sees the bottoms of objects, and physics needs complete meshes.</li>
+<li><strong>Extract frames.</strong>
+  <ul>
+  <li>Pull frames at 2–4 per second, for example <code>ffmpeg -i scan.mp4 -vf fps=3 frames/%05d.jpg</code>.</li>
+  <li>Drop blurry frames, for example those with low Laplacian variance.</li>
+  </ul></li>
+</ol>
+
+<h3 id="b">B. Reconstruct</h3>
+<ol start="5">
+<li><strong>Estimate camera poses.</strong>
+  <ul>
+  <li>Run COLMAP or GLOMAP, or <code>ns-process-data images --data frames/</code>.</li>
+  <li>Pass: nearly all frames registered, and mean reprojection error around 1 pixel or less.</li>
+  </ul></li>
+<li><strong>Train the Gaussian splat.</strong>
+  <ul>
+  <li>Run <code>ns-train splatfacto</code> or the gsplat trainer for about 30k iterations, then export the <code>.ply</code>.</li>
+  <li>Hold out some frames and compare renders against them.</li>
+  <li>Remove floaters: small, isolated Gaussians away from surfaces.</li>
+  </ul></li>
+<li><strong>Align to the robot frame at real-world scale.</strong> The splat starts in arbitrary units and an arbitrary frame.
+  <ul>
+  <li>Detect the board corners in several frames.</li>
+  <li>Triangulate them using the poses from step 5.</li>
+  <li>Solve a similarity transform (scale, rotation, translation) from splat coordinates to board coordinates with the Umeyama method.</li>
+  <li>Chain it with the known board-to-robot-base transform.</li>
+  <li>Alternative to a board: touch 3–4 points with the robot's tool tip and align to those.</li>
+  <li>Apply the transform to every Gaussian: positions, scales (times s) and rotations.</li>
+  </ul></li>
+<li><strong>Calibrate the real robot cameras.</strong>
+  <ul>
+  <li>Intrinsics: a checkerboard with OpenCV <code>calibrateCamera</code>.</li>
+  <li>Fixed cameras: extrinsics from the board.</li>
+  <li>Wrist cameras: hand-eye calibration with <code>calibrateHandEye</code>.</li>
+  <li>Save K and the camera pose in the robot base frame. The renderer uses exactly these values.</li>
+  <li>Check: project the robot's model into a real camera image and confirm it lines up. Aim for errors of a few millimetres; grasp accuracy depends on it.</li>
+  </ul></li>
+</ol>
+
+<h3 id="c">C. Split into objects</h3>
+<ol start="9">
+<li><strong>Segment objects in 2D.</strong>
+  <ul>
+  <li>Prompt SAM 2 with a click or box on one frame, or Grounded-SAM with a text prompt.</li>
+  <li>Propagate the masks through the video.</li>
+  </ul></li>
+<li><strong>Lift masks into 3D.</strong>
+  <ul>
+  <li>Project each Gaussian's centre into every frame.</li>
+  <li>Assign it to the object whose mask it lands in most often.</li>
+  <li>Gaussian Grouping or SAGA do this more robustly.</li>
+  <li>Export one <code>.ply</code> per object, plus the background.</li>
+  </ul></li>
+<li><strong>Fill the background holes.</strong> Removing an object leaves a hole underneath it. The cleanest fix is a second scan with the objects removed, aligned the same way. Inpainting is the fallback.</li>
+</ol>
+
+<h3 id="d">D. Build the physics copies</h3>
+<ol start="12">
+<li><strong>Mesh each object.</strong>
+  <ul>
+  <li>Best: reconstruct the separate 360° object scan from step 3, with 2DGS or photogrammetry, into a watertight mesh.</li>
+  <li>Fallback: mesh the object's Gaussians with SuGaR, or with TSDF fusion of rendered depth in Open3D.</li>
+  <li>Register the object mesh onto the object's Gaussians in the scene, for example with ICP.</li>
+  </ul></li>
+<li><strong>Clean up in Blender</strong> (headless: <code>blender -b -P export.py</code>).
+  <ul>
+  <li>Delete loose fragments, fill holes, and remesh if the mesh is broken.</li>
+  <li>Decimate the visual mesh to roughly 5–20k faces.</li>
+  <li>Set the origin to the centre of mass: <em>Set Origin → Origin to Center of Mass (Volume)</em>.</li>
+  <li>Apply rotation and scale with Ctrl+A, so the transform is identity.</li>
+  <li>Check dimensions against the real object with a ruler or calliper.</li>
+  <li>UV-unwrap and bake colours to a texture, used for debug rendering.</li>
+  <li><strong>Save the offset between the old and new origin.</strong> The object's Gaussians need the same offset, or the visual and physics copies drift apart.</li>
+  <li>Export OBJ with Z up, in metres.</li>
+  </ul></li>
+<li><strong>Make collision shapes.</strong>
+  <ul>
+  <li>Run convex decomposition, for example <code>coacd -i mug.obj -o mug_col.obj -t 0.05</code>.</li>
+  <li>Keep about 8–32 convex parts per object.</li>
+  <li>Required for MuJoCo: it treats each mesh geom as its convex hull. A mug without decomposition has no handle and no opening.</li>
+  </ul></li>
+<li><strong>Set physical properties.</strong> RGB cannot measure these.
+  <ul>
+  <li><strong>Mass:</strong> weigh the object if you can (a kitchen scale is enough); otherwise estimate from volume and material.</li>
+  <li><strong>Friction:</strong> pick a nominal value by material, then randomize widely in training.</li>
+  <li><strong>Joints (drawers, doors):</strong> segment the moving part and estimate the joint axis from a short video of it moving.</li>
+  </ul></li>
+</ol>
+<div class="table-wrap"><table>
+<thead><tr><th>Property</th><th>Source</th><th>Randomization range in training</th></tr></thead>
+<tbody>
+<tr><td>Mass</td><td>Scale, or volume × density</td><td>±30%</td></tr>
+<tr><td>Sliding friction</td><td>Material lookup or VLM guess</td><td>e.g. 0.3–1.2</td></tr>
+<tr><td>Restitution</td><td>Material lookup</td><td>Low for most household objects</td></tr>
+<tr><td>Joint damping / stiffness</td><td>Guess, then tune by eye against a video</td><td>Wide</td></tr>
+</tbody></table></div>
+<p class="note">The ranges are starting points to tune, not measured values.</p>
+
+<h3 id="e">E. Assemble the simulation</h3>
+<ol start="16">
+<li><strong>Write the MJCF scene</strong> (generate it with a Python script).
+  <ul>
+  <li><strong>Robot:</strong> from MuJoCo Menagerie, or the manufacturer URDF converted to MJCF.</li>
+  <li><strong>Each object:</strong>
+    <ul>
+    <li>a body with a <code>freejoint</code></li>
+    <li>one visual geom with <code>contype="0" conaffinity="0"</code></li>
+    <li>one geom per convex collision part, with <code>condim="4"</code> (or 6) so friction resists twisting</li>
+    <li>mass, and per-geom friction</li>
+    </ul></li>
+  <li><strong>Cameras:</strong> at the calibrated poses from step 8.</li>
+  <li><strong>Debug on the CPU:</strong> open it with <code>python -m mujoco.viewer --mjcf scene.xml</code>.</li>
+  <li>Pass:
+    <ul>
+    <li>objects rest without jitter</li>
+    <li>a drop test looks plausible</li>
+    <li>a scripted grasp holds without slipping or exploding</li>
+    </ul></li>
+  <li>Tune <code>solref</code> and <code>solimp</code> here.</li>
+  </ul></li>
+<li><strong>Scale up on the GPU.</strong>
+  <ul>
+  <li>Load the same MJCF into Newton with the MuJoCo-Warp solver, and replicate it into thousands of parallel worlds.</li>
+  <li>Replay one scripted grasp in both CPU MuJoCo and Newton, and confirm the outcomes match.</li>
+  <li>Check MJCF import coverage in the Newton version you install.</li>
+  </ul></li>
+<li><strong>Render the camera views from the splat.</strong> Each step:
+  <ul>
+  <li>Step physics.</li>
+  <li>Read every body pose from the GPU tensors.</li>
+  <li>Apply each pose to that object's Gaussians: rotate positions and rotations, then translate.</li>
+  <li>Render the merged scene with gsplat, using the real cameras' K and poses.</li>
+  <li>Robot options:
+    <ul>
+    <li><strong>Per-link Gaussians</strong>, scanned and attached to each link.</li>
+    <li><strong>Its meshes</strong>, rendered separately and depth-composited. This is simpler.</li>
+    </ul></li>
+  <li>Only vision-based students need images. Teacher policies use simulator state, so they skip rendering and run much faster.</li>
+  </ul></li>
+<li><strong>Match the real camera, then randomize.</strong>
+  <ul>
+  <li>Render from a real camera's pose and compare side by side with a real photo of the same scene.</li>
+  <li>Add sensor augmentations: colour and white-balance jitter, blur, noise, small camera-pose jitter.</li>
+  <li>Randomize object poses, lighting tint, distractors, and "cousin" objects (other scanned instances of the same category).</li>
+  <li>Optional: re-render recorded rollouts offline in Blender (Cycles or EEVEE, for example with BlenderProc) for lighting variety. This is too slow for online training.</li>
+  </ul></li>
+</ol>
+
+<h3 id="checklist">Validation checklist</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Check</th><th>How</th><th>Suggested pass criterion</th></tr></thead>
+<tbody>
+<tr><td>Pose estimation</td><td>SfM report</td><td>Nearly all frames registered, ~1 px reprojection error</td></tr>
+<tr><td>Splat quality</td><td>Renders vs held-out frames</td><td>No visible floaters or blur near the work area</td></tr>
+<tr><td>Metric alignment</td><td>Measure a known distance in the splat</td><td>Within a few mm</td></tr>
+<tr><td>Camera calibration</td><td>Robot model projected into a real image</td><td>Edges line up within a few pixels</td></tr>
+<tr><td>Visual–physics registration</td><td>Overlay the mesh on the Gaussians</td><td>No visible offset</td></tr>
+<tr><td>Collision shapes</td><td>Inspect in the MuJoCo viewer</td><td>Openings and handles preserved</td></tr>
+<tr><td>Physics stability</td><td>Rest and drop tests</td><td>No jitter, sinking or explosions</td></tr>
+<tr><td>CPU vs GPU parity</td><td>Same scripted grasp in both</td><td>Same outcome</td></tr>
+<tr><td>Rendering</td><td>Render vs real photo from the same pose</td><td>Similar enough that a frozen encoder gives similar features</td></tr>
+</tbody></table></div>
+<p class="note">The criteria are suggested starting targets, not published standards.</p>
+
+<h3 id="limits">Limits of this pipeline</h3>
+<ul>
+<li><strong>Lighting is baked into the splat.</strong> Shadows and reflections do not move with objects. Use lighting augmentation, or relightable Gaussian methods.</li>
+<li><strong>Views far from the capture look poor.</strong> Capture from the robot camera positions.</li>
+<li><strong>Deformable objects</strong> (cloth, cables, food) need Gaussians bound to a soft-body or particle simulation, as in PhysGaussian or PhysTwin.</li>
+<li><strong>Guessed physics</strong> is the weakest link. Randomize widely, and optionally refine from a few real rollouts.</li>
+</ul>
+
+<h2 id="part2">Part 2 — Making skills steerable</h2>
+<p>Condition skills on object-centric, geometric inputs, not only on free-form language. An agent can produce these reliably, and they let a small policy handle new situations.</p>
+<h3>Steering signals</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Steering signal</th><th>Example</th><th>Why it generalizes</th></tr></thead>
+<tbody>
+<tr><td>Target object mask or crop</td><td><code>target = mask(obj_17)</code></td><td>The policy sees "the thing to grasp," not "a red mug"</td></tr>
+<tr><td>Goal pose or region</td><td><code>place_at = (x, y, z, yaw)</code></td><td>Any destination the agent chooses</td></tr>
+<tr><td>2D/3D waypoints or a sketched trajectory</td><td>The agent draws the path</td><td>Steers how the motion happens (RT-Trajectory, HAMSTER)</td></tr>
+<tr><td>Keypoint constraints</td><td>"spout above cup, tilt 40°"</td><td>Composable rules (ReKep, MOKA)</td></tr>
+<tr><td>Limits</td><td>Max force, speed, gripper width</td><td>Safety and task style</td></tr>
+<tr><td>Preempt / abort</td><td>Stop signal</td><td>The agent can cut in mid-skill</td></tr>
+</tbody></table></div>
+<h3>Each skill is a typed tool</h3>
+<pre><code>{
+  "name": "pick",
+  "inputs": {"target_mask": "mask_id", "grasp_hint": "keypoint|null", "max_force_N": 20},
+  "preconditions": ["gripper_empty", "target_visible"],
+  "success_check": "object_lifted (detector + gripper width)",
+  "returns": {"status": "ok|fail|timeout", "failure_reason": "string"}
+}</code></pre>
+<p>A failed skill returns a structured status, so the agent can replan. Exposing skills through a standard tool protocol such as MCP lets any agent framework call them.</p>
+<h3>Where generalization within a task comes from</h3>
+<ul>
+<li><strong>Normalized inputs:</strong> masks, object-relative coordinates, and features from a frozen encoder such as DINOv2 or V-JEPA.</li>
+<li><strong>Heavy randomization in simulation:</strong>
+  <ul>
+  <li>object instances, poses, lighting, distractors, and camera position</li>
+  <li>"digital cousins": many variants of the scanned scene, not one exact copy</li>
+  </ul></li>
+</ul>
+<h3>Skill architecture</h3>
+<p>A small diffusion or flow-matching policy is enough. Options:</p>
+<ul>
+<li>ACT</li>
+<li>Diffusion Policy</li>
+<li>A La-JEPA-style policy on top of a frozen video encoder</li>
+</ul>
+<p>The steering inputs enter the policy alongside the camera features.</p>
+
+<h2 id="part3">Part 3 — The skill factory: new tasks with no teleoperation</h2>
+<p>The factory runs when the agent cannot compose a task from existing skills, or when a skill keeps failing. It turns an RGB video into a new, tested skill.</p>
+<ol>
+<li><strong>Capture:</strong> take a phone or robot-camera RGB video of the scene (Part 1, A).</li>
+<li><strong>Reconstruct:</strong> build the scene with Gaussian splatting for realistic rendering. Segment the objects, turn them into meshes for physics, and export to MJCF, USD or URDF (Part 1, B–D).</li>
+<li><strong>Set physical properties:</strong> mass, friction and joints cannot be measured from RGB. Guess them with a VLM or heuristics, then randomize them over wide ranges.</li>
+<li><strong>Simulate:</strong> run physics in Newton/MuJoCo, Isaac Lab or ManiSkill3, rendering camera views from the splat so they look like the real cameras (Part 1, E).</li>
+<li><strong>Generate data without humans:</strong>
+  <ul>
+  <li><strong>Scripted or motion-planner demos</strong> using simulator state, multiplied with MimicGen-style augmentation.</li>
+  <li><strong>Or RL with an agent-written reward</strong>, Eureka / DrEureka style: the LLM writes the reward function and the randomization ranges.</li>
+  </ul></li>
+<li><strong>Distill:</strong> train a "teacher" policy on simulator state, then a vision-based "student" that uses the same steering interface as the rest of the library.</li>
+<li><strong>Gate:</strong>
+  <ul>
+  <li>Check success rates in simulation, including on held-out cousin scenes.</li>
+  <li>Then run it on the real robot in a "shadow" or supervised mode before it joins the library.</li>
+  </ul></li>
+</ol>
+<p><strong>Optional extra data source:</strong> record a human doing the task once, and convert it Phantom-style into robot demonstrations. No teleoperation is needed.</p>
+<h3>Papers to borrow from</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Paper</th><th>What to take from it</th></tr></thead>
+<tbody>
+<tr><td>RialTo</td><td>Real-to-sim-to-real RL fine-tuning in a reconstructed scene</td></tr>
+<tr><td>Real2Render2Real</td><td>Fast data generation from phone scans by rendering</td></tr>
+<tr><td>SplatSim</td><td>Gaussian-splat rendering on top of a physics simulator</td></tr>
+<tr><td>Digital Cousins (ACDC)</td><td>Training on many similar scene variants, not one copy</td></tr>
+<tr><td>MimicGen</td><td>Multiplying a few demos into many</td></tr>
+<tr><td>Eureka / DrEureka</td><td>LLM-written rewards and domain randomization</td></tr>
+<tr><td>Phantom</td><td>Robot training data from human videos</td></tr>
+</tbody></table></div>
+
+<h2 id="part4">Part 4 — Runtime: how the agent and skills fit together</h2>
+<p>Most real-world robustness comes from the agent's closed loop, not from the policies.</p>
+<ul>
+<li><strong>Two speeds:</strong>
+  <ul>
+  <li>The agent thinks at about 1 Hz or slower, in the cloud or on a bigger onboard computer.</li>
+  <li>Skills act at 10–50 Hz on the robot's Jetson.</li>
+  <li>They never block each other. The agent updates steering inputs asynchronously.</li>
+  </ul></li>
+<li><strong>Closed loop:</strong> after every skill call, a VLM or detector checks the result against the expected outcome. On a mismatch, the agent replans.</li>
+<li><strong>Memory:</strong> log every failure (scene, steering input, reason) and send it to the skill factory as new simulation scenarios.</li>
+</ul>
+
+<h2 id="risks">Main risks</h2>
+<ul>
+<li><strong>Sim-to-real gap for contact-rich tasks and deformable objects.</strong> Rigid pick, place, push, and articulated objects transfer well from splat-based twins. Cloth, liquids, and tight insertions are much harder, and guessed physical properties are the weak link.</li>
+<li><strong>Skill granularity.</strong> Skills that are too large stop being composable. Skills that are too small make the agent's planning fragile. Start with about 5–10 primitives.</li>
+<li><strong>Failure detection</strong> often takes more engineering than the policies themselves.</li>
+</ul>
+
+<h2 id="mvp">Suggested MVP order</h2>
+<ul class="tasks">
+<li>Perception layer and scene graph, using only frozen models.</li>
+<li>Two or three skills (pick, place, push), trained purely in a twin of one workcell, with the steering interface.</li>
+<li>An agent with the skills as tools, plus a success checker. Test composing new tasks with no extra training.</li>
+<li>Automate the skill factory end to end: scan → twin → data generation → distill → evaluate.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>
